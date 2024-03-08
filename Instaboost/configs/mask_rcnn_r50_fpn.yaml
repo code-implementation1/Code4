@@ -1,0 +1,239 @@
+# Builtin Configurations(DO NOT CHANGE THESE CONFIGURATIONS unless you know exactly what you are doing)
+enable_modelarts: 0
+data_url: ""
+train_url: "/cache/data/mask_rcnn_models"
+checkpoint_url: ""
+data_path: "/cache/data"
+output_path: "/cache/train"
+load_path: "/cache/checkpoint_path"
+enable_profiling: 0
+
+train_outputs: '/data/mask_rcnn_models'
+brief: 'gpu-1_1024x1024'
+device_target: GPU
+mode: 'graph'
+# ==============================================================================
+detector: 'mask_rcnn'
+
+# backbone
+backbone:
+  type: "resnet"
+  depth: 50
+  pretrained: '/data/backbones/resnet50.ckpt'
+  frozen_stages: -1
+  norm_eval: True
+  num_stages: 4
+  out_indices: [0, 1, 2, 3]
+  groups: 1                                       # resnext
+  base_width: 4                                   # resnext
+
+# neck
+neck:
+  fpn:
+    in_channels: [256, 512, 1024, 2048]
+    out_channels: 256
+    num_outs: 5
+
+# rpn
+rpn:
+  in_channels: 256
+  feat_channels: 256
+  num_classes: 1
+  bbox_coder:
+    target_means: [0., 0., 0., 0.]
+    target_stds: [1.0, 1.0, 1.0, 1.0]
+  loss_cls:
+    loss_weight: 1.0
+  loss_bbox:
+    loss_weight: 1.0
+  anchor_generator:
+    scales: [8]
+    strides: [4, 8, 16, 32, 64]
+    ratios: [0.5, 1.0, 2.0]
+
+bbox_head:
+  in_channels: 256
+  fc_out_channels: 1024
+  roi_feat_size: 7
+  reg_class_agnostic: False
+  bbox_coder:
+    target_means: [0.0, 0.0, 0.0, 0.0]
+    target_stds: [0.1, 0.1, 0.2, 0.2]
+  loss_cls:
+    loss_weight: 1.0
+  loss_bbox:
+    loss_weight: 1.0
+
+mask_head:
+  num_convs: 4
+  in_channels: 256
+  conv_out_channels: 256
+  loss_mask:
+    loss_weight: 1.0
+
+# roi_align
+roi:
+  roi_layer: {type: 'RoIAlign', out_size: 7, sampling_ratio: 0}
+  out_channels: 256
+  featmap_strides: [4, 8, 16, 32]
+  finest_scale: 56
+  sample_num: 640
+
+mask_roi:
+  roi_layer: {type: 'RoIAlign', out_size: 14, sampling_ratio: 0}
+  out_channels: 256
+  featmap_strides: [4, 8, 16, 32]
+  finest_scale: 56
+  sample_num: 128
+
+train_cfg:
+  rpn:
+    assigner:
+      pos_iou_thr: 0.7
+      neg_iou_thr: 0.3
+      min_pos_iou: 0.3
+      match_low_quality: True
+    sampler:
+      num: 256
+      pos_fraction: 0.5
+      neg_pos_ub: -1
+      add_gt_as_proposals: False
+  rpn_proposal:
+      nms_pre: 2000
+      max_per_img: 1000
+      iou_threshold: 0.7
+      min_bbox_size: 0
+  rcnn:
+      assigner:
+        pos_iou_thr: 0.5
+        neg_iou_thr: 0.5
+        min_pos_iou: 0.5
+        match_low_quality: True
+      sampler:
+        num: 512
+        pos_fraction: 0.25
+        neg_pos_ub: -1
+        add_gt_as_proposals: True
+      mask_size: 28
+
+test_cfg:
+  rpn:
+    nms_pre: 1000
+    max_per_img: 1000
+    iou_threshold: 0.7
+    min_bbox_size: 0
+  rcnn:
+    score_thr: 0.05
+    iou_threshold: 0.5
+    max_per_img: 100
+    mask_thr_binary: 0.5
+
+# optimizer
+opt_type: "sgd"
+lr: 0.02
+min_lr: 0.0000001
+momentum: 0.9
+weight_decay: 0.0001
+warmup_step: 500
+warmup_ratio: 0.001
+lr_steps: [32, 44]
+lr_type: "multistep"
+grad_clip: 0
+
+
+# train
+num_gts: 100
+batch_size: 16
+test_batch_size: 1
+loss_scale: 256
+epoch_size: 48
+run_eval: 1
+eval_every: 1
+enable_graph_kernel: 0
+finetune: 0
+datasink: 1
+pre_trained: ''
+
+#distribution training
+run_distribute: False
+device_id: 0
+device_num: 1
+rank_id: 0
+
+# Number of threads used to process the dataset in parallel
+num_parallel_workers: 6
+# Parallelize Python operations with multiple worker processes
+python_multiprocessing: 0
+# dataset setting
+train_dataset: '/data/coco-2017/train'
+val_dataset: '/data/coco-2017/validation'
+coco_classes: ['background', 'person', 'bicycle', 'car', 'motorcycle',
+               'airplane', 'bus', 'train', 'truck', 'boat', 'traffic light',
+               'fire hydrant', 'stop sign', 'parking meter', 'bench', 'bird',
+               'cat', 'dog', 'horse', 'sheep', 'cow', 'elephant', 'bear',
+               'zebra', 'giraffe', 'backpack', 'umbrella', 'handbag', 'tie',
+               'suitcase', 'frisbee', 'skis', 'snowboard', 'sports ball',
+               'kite', 'baseball bat', 'baseball glove', 'skateboard',
+               'surfboard', 'tennis racket', 'bottle', 'wine glass', 'cup',
+               'fork', 'knife', 'spoon', 'bowl', 'banana', 'apple',
+               'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza',
+               'donut', 'cake', 'chair', 'couch', 'potted plant', 'bed',
+               'dining table', 'toilet', 'tv', 'laptop', 'mouse', 'remote',
+               'keyboard', 'cell phone', 'microwave', 'oven', 'toaster',
+               'sink', 'refrigerator', 'book', 'clock', 'vase', 'scissors',
+               'teddy bear', 'hair drier', 'toothbrush']
+num_classes: 81
+train_dataset_num: 0
+train_dataset_divider: 0
+
+# images
+img_width: 1024
+img_height: 1024
+ratio_range: [0.5, 2.0]
+mask_divider: 4
+divider: 64
+img_mean: [123.675, 116.28, 103.53]
+img_std: [58.395, 57.12, 57.375]
+to_rgb: 1
+keep_ratio: 1
+
+# augmentation
+flip_ratio: 0.5
+expand_ratio: 0.0
+
+# instaboost augmentation
+use_instaboost_fast: True
+
+action_candidate: ['normal', 'horizontal', 'skip']
+action_prob: [1, 0, 0]
+scale: [0.8, 1.2]
+dx: 15
+dy: 15
+theta: [-1, 1]
+color_prob: 0.5
+heatmap_flag: False
+aug_prob: 0.5
+
+# callbacks
+save_every: 100
+keep_checkpoint_max: 5
+keep_best_checkpoints_max: 5
+
+---
+# Config description for each option
+enable_modelarts: 'Whether training on modelarts, default: False'
+
+device_target: "device where the code will be implemented, default is GPU."
+train_outputs: "Path for folder with experiments."
+brief: "Short experiment name, experiment folder will arrive in `train_outputs` folder. `brief` will suffix of experiment folder name."
+img_width: "Input images weight."
+img_height: "Input images height."
+
+lr: "Base learning rate value."
+batch_size: "Training batch size."
+pre_trained: "Path to pretraining model (resume training or train new fine tuned model)."
+
+---
+device_target: ["GPU"]
+backbone_type: ["resnet", "resnext"]
+mode: ['graph', 'pynative']
